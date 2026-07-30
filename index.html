@@ -358,6 +358,101 @@
     transform:translateY(-3px);
   }
 
+  /* ---------- Guestbook ---------- */
+  .guestbook-card{
+    background:linear-gradient(160deg, rgba(255,255,255,0.55), rgba(255,255,255,0.15));
+    border:1px solid rgba(180,160,150,0.35);
+    border-radius:28px;
+    padding:44px;
+    box-shadow:0 20px 40px -30px rgba(90,70,60,0.35);
+  }
+  .guestbook-form{
+    display:flex;
+    gap:14px;
+    flex-wrap:wrap;
+    margin-bottom:36px;
+  }
+  .guestbook-form input{
+    font-family:"Noto Serif TC", serif;
+    font-size:0.92rem;
+    color:var(--ink);
+    background:rgba(255,255,255,0.5);
+    border:1px solid var(--line);
+    border-radius:14px;
+    padding:12px 18px;
+    outline:none;
+    transition:border-color 0.25s ease, background 0.25s ease;
+  }
+  .guestbook-form input::placeholder{ color:var(--ink-soft); opacity:0.7; }
+  .guestbook-form input:focus{
+    border-color:var(--clay);
+    background:rgba(255,255,255,0.75);
+  }
+  .guestbook-form input#gb-name{ flex:0 1 180px; }
+  .guestbook-form input#gb-message{ flex:1 1 260px; }
+  .guestbook-form button{
+    font-family:"Klee One", serif;
+    font-size:0.92rem;
+    color:#fff;
+    background:var(--clay);
+    border:none;
+    border-radius:14px;
+    padding:12px 30px;
+    cursor:pointer;
+    transition:transform 0.25s ease, background 0.25s ease;
+  }
+  .guestbook-form button:hover{ background:var(--mauve); transform:translateY(-2px); }
+  .guestbook-form button:disabled{ opacity:0.6; cursor:default; transform:none; }
+  .guestbook-list{
+    list-style:none;
+    display:flex;
+    flex-direction:column;
+    gap:16px;
+    max-height:420px;
+    overflow-y:auto;
+  }
+  .guestbook-item{
+    background:rgba(255,255,255,0.4);
+    border:1px solid rgba(180,160,150,0.25);
+    border-radius:16px;
+    padding:18px 22px;
+  }
+  .guestbook-item-head{
+    display:flex;
+    justify-content:space-between;
+    align-items:baseline;
+    gap:12px;
+    margin-bottom:6px;
+  }
+  .guestbook-name{
+    font-family:"Klee One", serif;
+    font-weight:600;
+    color:var(--ink);
+  }
+  .guestbook-time{
+    font-size:0.75rem;
+    color:var(--ink-soft);
+    opacity:0.75;
+    white-space:nowrap;
+  }
+  .guestbook-message{
+    color:var(--ink-soft);
+    line-height:1.8;
+    font-weight:300;
+    word-break:break-word;
+  }
+  .guestbook-empty{
+    text-align:center;
+    color:var(--ink-soft);
+    opacity:0.7;
+    padding:20px 0;
+  }
+  @media (max-width:520px){
+    .guestbook-form{ flex-direction:column; }
+    .guestbook-form input#gb-name, .guestbook-form input#gb-message{ flex:1 1 auto; }
+    .guestbook-form button{ width:100%; }
+  }
+
   footer{
     text-align:center;
     padding:36px 20px 50px;
@@ -504,9 +599,118 @@
     </div>
   </section>
 
+  <section id="guestbook">
+    <div class="section-head">
+      <span class="section-num">05 · Guestbook</span>
+      <h2>留言板</h2>
+    </div>
+    <div class="guestbook-card">
+      <form id="guestbook-form" class="guestbook-form">
+        <input type="text" id="gb-name" placeholder="你的名字" maxlength="50" required>
+        <input type="text" id="gb-message" placeholder="留一句話給 Mei" maxlength="280" required>
+        <button type="submit">送出</button>
+      </form>
+      <ul id="guestbook-list" class="guestbook-list">
+        <li class="guestbook-empty">載入中…</li>
+      </ul>
+    </div>
+  </section>
+
 </div>
 
 <footer>© 2026 MEI DESIGN STUDIO · Crafted with pencil &amp; pixel</footer>
+
+<script>
+(function(){
+  var form = document.getElementById('guestbook-form');
+  var list = document.getElementById('guestbook-list');
+  var nameInput = document.getElementById('gb-name');
+  var msgInput = document.getElementById('gb-message');
+
+  function formatTime(iso){
+    try {
+      var d = new Date(iso + 'Z');
+      return d.toLocaleString('zh-TW', { month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit' });
+    } catch(e){ return ''; }
+  }
+
+  function renderMessages(messages){
+    list.innerHTML = '';
+    if (!messages || !messages.length){
+      var empty = document.createElement('li');
+      empty.className = 'guestbook-empty';
+      empty.textContent = '還沒有留言，來當第一位吧！';
+      list.appendChild(empty);
+      return;
+    }
+    messages.forEach(function(m){
+      var li = document.createElement('li');
+      li.className = 'guestbook-item';
+
+      var head = document.createElement('div');
+      head.className = 'guestbook-item-head';
+
+      var name = document.createElement('span');
+      name.className = 'guestbook-name';
+      name.textContent = m.name;
+
+      var time = document.createElement('span');
+      time.className = 'guestbook-time';
+      time.textContent = formatTime(m.created_at);
+
+      head.appendChild(name);
+      head.appendChild(time);
+
+      var body = document.createElement('p');
+      body.className = 'guestbook-message';
+      body.textContent = m.message;
+
+      li.appendChild(head);
+      li.appendChild(body);
+      list.appendChild(li);
+    });
+  }
+
+  function loadMessages(){
+    fetch('/api/messages')
+      .then(function(r){ return r.json(); })
+      .then(renderMessages)
+      .catch(function(){
+        list.innerHTML = '';
+        var err = document.createElement('li');
+        err.className = 'guestbook-empty';
+        err.textContent = '留言載入失敗，請稍後重新整理再試。';
+        list.appendChild(err);
+      });
+  }
+
+  form.addEventListener('submit', function(e){
+    e.preventDefault();
+    var name = nameInput.value.trim();
+    var message = msgInput.value.trim();
+    if (!name || !message) return;
+    var btn = form.querySelector('button');
+    btn.disabled = true;
+    fetch('/api/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: name, message: message })
+    })
+      .then(function(r){ if (!r.ok) throw new Error('failed'); return r.json(); })
+      .then(function(){
+        nameInput.value = '';
+        msgInput.value = '';
+        loadMessages();
+      })
+      .catch(function(){
+        alert('送出失敗，請稍後再試一次');
+      })
+      .finally(function(){ btn.disabled = false; });
+  });
+
+  loadMessages();
+})();
+</script>
 
 </body>
 </html>
