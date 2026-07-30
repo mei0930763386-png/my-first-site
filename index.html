@@ -447,6 +447,37 @@
     opacity:0.7;
     padding:20px 0;
   }
+  .ai-summary-block{
+    margin-top:28px;
+    padding-top:24px;
+    border-top:1px dashed rgba(180,160,150,0.35);
+    text-align:center;
+  }
+  .ai-summary-block button{
+    font-family:"Klee One", serif;
+    font-size:0.9rem;
+    color:var(--ink);
+    background:rgba(255,255,255,0.4);
+    border:1px solid var(--line);
+    border-radius:999px;
+    padding:10px 24px;
+    cursor:pointer;
+    transition:all 0.25s ease;
+  }
+  .ai-summary-block button:hover{
+    background:var(--sage);
+    color:#fff;
+    border-color:var(--sage);
+    transform:translateY(-2px);
+  }
+  .ai-summary-block button:disabled{ opacity:0.6; cursor:default; transform:none; }
+  .ai-summary-result{
+    margin-top:16px;
+    font-family:"Caveat", cursive;
+    font-size:1.35rem;
+    color:var(--ink);
+    min-height:1.6em;
+  }
   @media (max-width:520px){
     .guestbook-form{ flex-direction:column; }
     .guestbook-form input#gb-name, .guestbook-form input#gb-message{ flex:1 1 auto; }
@@ -613,6 +644,10 @@
       <ul id="guestbook-list" class="guestbook-list">
         <li class="guestbook-empty">載入中…</li>
       </ul>
+      <div class="ai-summary-block">
+        <button id="ai-summary-btn" type="button">✨ AI 一句話總結</button>
+        <p id="ai-summary-result" class="ai-summary-result"></p>
+      </div>
     </div>
   </section>
 
@@ -709,6 +744,33 @@
   });
 
   loadMessages();
+
+  var aiBtn = document.getElementById('ai-summary-btn');
+  var aiResult = document.getElementById('ai-summary-result');
+
+  aiBtn.addEventListener('click', function(){
+    var originalText = aiBtn.textContent;
+    aiBtn.disabled = true;
+    aiBtn.textContent = '總結中…';
+    aiResult.textContent = '';
+
+    fetch('/api/summarize', { method: 'POST' })
+      .then(function(r){
+        return r.json().then(function(data){ return { ok: r.ok, data: data }; });
+      })
+      .then(function(res){
+        aiResult.textContent = res.ok
+          ? res.data.summary
+          : (res.data && res.data.error) || '總結失敗，請稍後再試';
+      })
+      .catch(function(){
+        aiResult.textContent = '總結失敗，請稍後再試';
+      })
+      .finally(function(){
+        aiBtn.disabled = false;
+        aiBtn.textContent = originalText;
+      });
+  });
 })();
 </script>
 
